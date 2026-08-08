@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>آهنگ‌های هفته</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0c0f16;
+    --bg-1:#151a24;
+    --card:#151b26;
+    --amber:#f2a65a;
+    --teal:#3bd6c6;
+    --text:#eef1f6;
+    --text-dim:#8b93a5;
+    --line:rgba(255,255,255,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;
+    background:radial-gradient(ellipse at 50% 0%, var(--bg-1), var(--bg-0) 70%);
+    color:var(--text);
+    font-family:'Space Grotesk',system-ui,sans-serif;
+  }
+  body{ min-height:100vh; min-height:100dvh; padding-bottom:24px; }
+
+  header{
+    padding:22px 20px 14px;
+    text-align:center;
+    position:sticky; top:0; z-index:5;
+    background:linear-gradient(180deg, var(--bg-0) 70%, transparent);
+  }
+  header .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:11px;letter-spacing:.3em;
+    color:var(--amber);text-transform:uppercase;
+  }
+  header h1{ margin:6px 0 0; font-size:21px; font-weight:700; }
+
+  /* ---- نوار پخش‌کننده‌ی مینی ---- */
+  .mini-player{
+    position:sticky; top:64px; z-index:4;
+    margin:0 16px 16px;
+    background:linear-gradient(180deg,#171d29,#10141d);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px 16px;
+    display:flex; align-items:center; gap:14px;
+    box-shadow:0 10px 24px rgba(0,0,0,.35);
+  }
+  #playPauseBtn{
+    flex:0 0 auto;
+    width:46px;height:46px;border-radius:50%;
+    border:1px solid rgba(242,166,90,.4);
+    background:radial-gradient(circle at 35% 30%,#232b3b,#0d1119 75%);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  #playPauseBtn svg{ width:18px;height:18px; }
+  #playPauseBtn svg path,#playPauseBtn svg rect{ fill:var(--amber); }
+  .mini-info{ flex:1 1 auto; min-width:0; }
+  .mini-info .t{
+    font-family:'Space Mono',monospace; font-size:14px; color:var(--amber);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .mini-info .a{
+    font-size:12px; color:var(--text-dim); margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #miniViz{ flex:0 0 auto; width:44px; height:26px; }
+
+  /* ---- لیست آهنگ‌ها ---- */
+  .list-wrap{ padding:4px 16px; }
+  .state-msg{
+    text-align:center; color:var(--text-dim);
+    font-size:13px; padding:30px 10px;
+  }
+  ul#songList{ list-style:none; margin:0; padding:0; }
+  .song-row{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 10px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    border-radius:10px;
+    transition:background .2s;
+  }
+  .song-row:active{ background:rgba(242,166,90,.08); }
+  .song-row.active{ background:rgba(242,166,90,.1); }
+  .idx{
+    flex:0 0 26px; text-align:center;
+    font-family:'Space Mono',monospace; font-size:12px; color:var(--text-dim);
+  }
+  .song-row.active .idx{ color:var(--amber); }
+  .eq{
+    flex:0 0 26px; height:16px;
+    display:none; align-items:flex-end; gap:2px;
+  }
+  .song-row.active .eq{ display:flex; }
+  .song-row .idx.hide-when-active{ display:block; }
+  .song-row.active .idx.hide-when-active{ display:none; }
+  .eq span{
+    width:3px; background:var(--amber); border-radius:1px;
+    animation:eq 1s ease-in-out infinite;
+  }
+  .eq span:nth-child(1){ height:6px; animation-delay:0s; }
+  .eq span:nth-child(2){ height:14px; animation-delay:.2s; }
+  .eq span:nth-child(3){ height:9px; animation-delay:.4s; }
+  @keyframes eq{
+    0%,100%{ transform:scaleY(.4); }
+    50%{ transform:scaleY(1); }
+  }
+  .song-meta{ flex:1 1 auto; min-width:0; }
+  .song-meta .title{
+    font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .song-row.active .song-meta .title{ color:var(--amber); }
+  .song-meta .artist{
+    font-size:12px; color:var(--text-dim); margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .retry-btn{
+    display:block; margin:14px auto 0;
+    background:none; border:1px solid var(--amber);
+    color:var(--amber); border-radius:20px;
+    padding:8px 20px; font-family:inherit; font-size:13px;
+    cursor:pointer;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .eq span{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">پلی‌لیست هفتگی</div>
+  <h1>آهنگ‌های هفته</h1>
+</header>
+
+<div class="mini-player">
+  <button id="playPauseBtn" aria-label="پخش">
+    <svg id="miniPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="miniPause" viewBox="0 0 24 24" hidden><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+  </button>
+  <div class="mini-info">
+    <div class="t" id="miniTitle">آهنگی انتخاب نشده</div>
+    <div class="a" id="miniArtist">از لیست پایین یک آهنگ انتخاب کنید</div>
+  </div>
+  <canvas id="miniViz"></canvas>
+</div>
+
+<div class="list-wrap">
+  <div class="state-msg" id="stateMsg">در حال بارگذاری لیست آهنگ‌ها…</div>
+  <ul id="songList"></ul>
+</div>
+
+<script>
+/* =====================================================================
+   تنظیمات یک‌بارِ مخزن گیت‌هاب — فقط همین سه خط را با اطلاعات خودت پر کن.
+   بعد از این، هر آهنگی که با فرمت صحیح داخل پوشه‌ی songs آپلود کنی،
+   خودکار در لیست ظاهر می‌شود؛ دیگر نیازی به ویرایش این فایل نیست.
+   ===================================================================== */
+const GITHUB_OWNER  = "farshadtictac-ui";      // نام کاربری گیت‌هاب خودت
+const GITHUB_REPO   = "Radio-App-Music";       // اسم مخزن (repository)
+const GITHUB_BRANCH = "main";                  // نام شاخه (معمولاً main)
+const SONGS_PATH    = "songs";                 // اسم پوشه‌ی آهنگ‌ها
+/* =====================================================================
+   قالب نام‌گذاری فایل‌ها: "خواننده - نام آهنگ.mp3"
+   مثال: سوگند - بارون.mp3
+   اگر می‌خواهی ترتیب خاصی در لیست داشته باشی، عدد ابتدای اسم بگذار:
+   "01 - سوگند - بارون.mp3"
+   ===================================================================== */
+
+let playlist = [];
+let currentIndex = -1;
+let isPlaying = false;
+let audioCtx, analyser, sourceNode, dataArray;
+
+const audio = new Audio();
+audio.preload = "auto";
+
+const stateMsg = document.getElementById('stateMsg');
+const songListEl = document.getElementById('songList');
+const playPauseBtn = document.getElementById('playPauseBtn');
+const miniPlay = document.getElementById('miniPlay');
+const miniPause = document.getElementById('miniPause');
+const miniTitle = document.getElementById('miniTitle');
+const miniArtist = document.getElementById('miniArtist');
+
+function parseFileName(name){
+  const noExt = name.replace(/\.mp3$/i, '');
+  // حذف پیشوند عددی مرتب‌سازی مثل "01 - "
+  const withoutOrder = noExt.replace(/^\d+\s*-\s*/, '');
+  const parts = withoutOrder.split(/\s-\s/);
+  if (parts.length >= 2){
+    return { artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim() };
+  }
+  return { artist: "", title: withoutOrder.trim() };
+}
+
+async function fetchPlaylist(){
+  const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${SONGS_PATH}?ref=${GITHUB_BRANCH}`;
+  const res = await fetch(api, { headers: { "Accept": "application/vnd.github+json" } });
+  if (!res.ok) throw new Error("github api error " + res.status);
+  const data = await res.json();
+  const files = data.filter(f => f.type === 'file' && /\.mp3$/i.test(f.name));
+  files.sort((a,b) => a.name.localeCompare(b.name, 'fa'));
+  return files.map(f => {
+    const { artist, title } = parseFileName(f.name);
+    return { title, artist, url: f.download_url };
+  });
+}
+
+function renderList(){
+  songListEl.innerHTML = "";
+  playlist.forEach((song, i) => {
+    const li = document.createElement('li');
+    li.className = 'song-row';
+    li.dataset.index = i;
+    li.innerHTML = `
+      <span class="idx hide-when-active">${i + 1}</span>
+      <span class="eq"><span></span><span></span><span></span></span>
+      <span class="song-meta">
+        <div class="title">${song.title || 'بدون عنوان'}</div>
+        <div class="artist">${song.artist || ''}</div>
+      </span>
+    `;
+    li.addEventListener('click', () => playIndex(i));
+    songListEl.appendChild(li);
+  });
+}
+
+function highlightActiveRow(){
+  document.querySelectorAll('.song-row').forEach(row => {
+    row.classList.toggle('active', Number(row.dataset.index) === currentIndex);
+  });
+}
+
+function updateMiniPlayer(){
+  const song = playlist[currentIndex];
+  miniTitle.textContent = song ? (song.title || 'بدون عنوان') : 'آهنگی انتخاب نشده';
+  miniArtist.textContent = song ? (song.artist || '') : 'از لیست پایین یک آهنگ انتخاب کنید';
+}
+
+function setPlayingUI(playing){
+  isPlaying = playing;
+  miniPlay.hidden = playing;
+  miniPause.hidden = !playing;
+}
+
+function ensureAudioGraph(){
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  sourceNode = audioCtx.createMediaElementSource(audio);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 32;
+  sourceNode.connect(analyser);
+  analyser.connect(audioCtx.destination);
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+  drawMiniViz();
+}
+
+async function playIndex(i){
+  if (i < 0 || i >= playlist.length) return;
+  ensureAudioGraph();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  currentIndex = i;
+  audio.src = playlist[i].url;
+  updateMiniPlayer();
+  highlightActiveRow();
+  try{
+    await audio.play();
+    setPlayingUI(true);
+  }catch(e){
+    setPlayingUI(false);
+  }
+}
+
+playPauseBtn.addEventListener('click', async () => {
+  if (currentIndex === -1){
+    if (playlist.length) playIndex(0);
+    return;
+  }
+  if (isPlaying){
+    audio.pause();
+    setPlayingUI(false);
+  } else {
+    ensureAudioGraph();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    audio.play().catch(()=>{});
+    setPlayingUI(true);
+  }
+});
+
+// وقتی آهنگ تمام شد، به‌صورت خودکار آهنگ بعدیِ لیست پخش شود (و در پایان لیست، از اول شروع شود)
+audio.addEventListener('ended', () => {
+  if (playlist.length === 0) return;
+  playIndex((currentIndex + 1) % playlist.length);
+});
+audio.addEventListener('error', () => {
+  miniArtist.textContent = "خطا در پخش این فایل";
+});
+
+/* ---- بصری‌ساز کوچک کنار پلیر ---- */
+const miniCanvas = document.getElementById('miniViz');
+const miniCtx = miniCanvas.getContext('2d');
+function resizeMiniViz(){
+  miniCanvas.width = 44 * (window.devicePixelRatio || 1);
+  miniCanvas.height = 26 * (window.devicePixelRatio || 1);
+}
+resizeMiniViz();
+
+function drawMiniViz(){
+  requestAnimationFrame(drawMiniViz);
+  if (!analyser) return;
+  analyser.getByteFrequencyData(dataArray);
+  const w = miniCanvas.width, h = miniCanvas.height;
+  miniCtx.clearRect(0,0,w,h);
+  const barCount = 8;
+  const gap = 2 * (window.devicePixelRatio || 1);
+  const barWidth = w / barCount - gap;
+  let x = 0;
+  for (let i=0;i<barCount;i++){
+    const v = (dataArray[i] || 0) / 255;
+    const barH = isPlaying ? Math.max(v * h, 2) : 2;
+    miniCtx.fillStyle = 'rgba(242,166,90,.85)';
+    miniCtx.fillRect(x, h - barH, barWidth, barH);
+    x += barWidth + gap;
+  }
+}
+
+/* ---- بارگذاری اولیه‌ی لیست از گیت‌هاب ---- */
+async function init(){
+  try{
+    playlist = await fetchPlaylist();
+    if (playlist.length === 0){
+      stateMsg.textContent = "هنوز آهنگی در پوشه‌ی songs پیدا نشد.";
+      return;
+    }
+    stateMsg.style.display = 'none';
+    renderList();
+  }catch(e){
+    stateMsg.innerHTML = "خطا در دریافت لیست آهنگ‌ها. اتصال اینترنت یا تنظیمات مخزن را بررسی کنید.";
+    const btn = document.createElement('button');
+    btn.className = 'retry-btn';
+    btn.textContent = 'تلاش دوباره';
+    btn.addEventListener('click', () => {
+      stateMsg.textContent = "در حال بارگذاری لیست آهنگ‌ها…";
+      stateMsg.style.display = 'block';
+      init();
+    });
+    stateMsg.appendChild(document.createElement('br'));
+    stateMsg.appendChild(btn);
+  }
+}
+init();
+
+/* ---- یکپارچه‌سازی با تلگرام ---- */
+if (window.Telegram && window.Telegram.WebApp){
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
