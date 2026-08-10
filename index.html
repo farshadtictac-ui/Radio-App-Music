@@ -263,23 +263,22 @@ function ensureAudioGraph(){
   drawMiniViz();
 }
 
-async function playIndex(i){
+function playIndex(i){
   if (i < 0 || i >= playlist.length) return;
   ensureAudioGraph();
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
   currentIndex = i;
   audio.src = playlist[i].url;
   updateMiniPlayer();
   highlightActiveRow();
-  try{
-    await audio.play();
-    setPlayingUI(true);
-  }catch(e){
-    setPlayingUI(false);
+  // play() فراخوانی می‌شود بدون هیچ await قبلی، تا در همان لحظه‌ی لمس کاربر باقی بماند
+  const playPromise = audio.play();
+  if (playPromise){
+    playPromise.then(() => setPlayingUI(true)).catch(() => setPlayingUI(false));
   }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-playPauseBtn.addEventListener('click', async () => {
+playPauseBtn.addEventListener('click', () => {
   if (currentIndex === -1){
     if (playlist.length) playIndex(0);
     return;
@@ -289,9 +288,11 @@ playPauseBtn.addEventListener('click', async () => {
     setPlayingUI(false);
   } else {
     ensureAudioGraph();
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
-    audio.play().catch(()=>{});
-    setPlayingUI(true);
+    const playPromise = audio.play();
+    if (playPromise){
+      playPromise.then(() => setPlayingUI(true)).catch(() => setPlayingUI(false));
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 });
 
