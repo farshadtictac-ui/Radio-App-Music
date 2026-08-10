@@ -156,9 +156,11 @@
     background:linear-gradient(180deg,#181f30,#10141d);
     border:1px solid var(--line);
     border-radius:16px;
-    padding:14px 16px;
-    display:flex; align-items:center; gap:12px;
+    padding:14px 16px 10px;
     box-shadow:0 10px 24px rgba(0,0,0,.35);
+  }
+  .mini-top{
+    display:flex; align-items:center; gap:12px;
   }
   #playPauseBtn{
     flex:0 0 auto;
@@ -211,6 +213,39 @@
     50%{ height:20px; }
   }
 
+  /* ---- نوار پیشرفت آهنگ ---- */
+  .seek-row{
+    display:flex; align-items:center; gap:8px;
+    margin-top:8px;
+  }
+  .seek-row .time{
+    font-family:'Space Mono',monospace; font-size:10.5px; color:var(--text-dim);
+    flex:0 0 auto; min-width:32px; text-align:center;
+  }
+  #seekBar{
+    flex:1 1 auto; -webkit-appearance:none; appearance:none;
+    height:4px; border-radius:2px;
+    background:linear-gradient(90deg, var(--amber) 0%, var(--amber) 0%, rgba(255,255,255,.12) 0%);
+    outline:none; cursor:pointer;
+  }
+  #seekBar:disabled{ cursor:default; opacity:.5; }
+  #seekBar::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:13px; height:13px; border-radius:50%;
+    background:linear-gradient(135deg, var(--amber), var(--pink));
+    box-shadow:0 0 6px rgba(242,166,90,.6);
+    border:none;
+  }
+  #seekBar::-moz-range-thumb{
+    width:13px; height:13px; border-radius:50%;
+    background:linear-gradient(135deg, var(--amber), var(--pink));
+    box-shadow:0 0 6px rgba(242,166,90,.6);
+    border:none;
+  }
+  #seekBar::-moz-range-track{
+    height:4px; border-radius:2px; background:rgba(255,255,255,.12);
+  }
+
   /* ---------------- لیست آهنگ‌ها ---------------- */
   .list-wrap{ position:relative; z-index:1; padding:4px 16px; }
   .state-msg{
@@ -256,6 +291,23 @@
     font-size:12px; color:var(--text-dim); margin-top:2px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
+  .dl-btn{
+    flex:0 0 32px; width:32px; height:32px; border-radius:9px;
+    border:1px solid var(--line); background:rgba(255,255,255,.03);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .dl-btn svg{
+    width:15px; height:15px;
+    fill:none; stroke:var(--text-dim); stroke-width:2;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
+  .dl-btn:active{ background:rgba(242,166,90,.12); border-color:rgba(242,166,90,.4); }
+  .dl-btn:active svg{ stroke:var(--amber); }
+  .dl-btn.loading{ animation:dl-pulse 1s ease-in-out infinite; pointer-events:none; }
+  @keyframes dl-pulse{
+    0%,100%{ opacity:1; } 50%{ opacity:.35; }
+  }
   .retry-btn{
     display:block; margin:14px auto 0;
     background:none; border:1px solid var(--amber);
@@ -297,16 +349,23 @@
 </div>
 
 <div class="mini-player">
-  <button id="playPauseBtn" aria-label="پخش">
-    <svg id="miniPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-    <svg id="miniPause" viewBox="0 0 24 24" hidden><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
-  </button>
-  <button id="shuffleBtn" aria-label="پخش تصادفی" title="پخش تصادفی">🔀</button>
-  <div class="mini-info">
-    <div class="t" id="miniTitle">آهنگی انتخاب نشده</div>
-    <div class="a" id="miniArtist">از لیست پایین یک آهنگ انتخاب کنید</div>
+  <div class="mini-top">
+    <button id="playPauseBtn" aria-label="پخش">
+      <svg id="miniPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="miniPause" viewBox="0 0 24 24" hidden><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+    </button>
+    <button id="shuffleBtn" aria-label="پخش تصادفی" title="پخش تصادفی">🔀</button>
+    <div class="mini-info">
+      <div class="t" id="miniTitle">آهنگی انتخاب نشده</div>
+      <div class="a" id="miniArtist">از لیست پایین یک آهنگ انتخاب کنید</div>
+    </div>
+    <span class="mini-viz" id="miniViz"><span></span><span></span><span></span><span></span></span>
   </div>
-  <span class="mini-viz" id="miniViz"><span></span><span></span><span></span><span></span></span>
+  <div class="seek-row">
+    <span class="time" id="curTime">۰:۰۰</span>
+    <input type="range" id="seekBar" min="0" max="0" step="0.1" value="0" disabled>
+    <span class="time" id="durTime">۰:۰۰</span>
+  </div>
 </div>
 
 <div class="list-wrap">
@@ -349,6 +408,51 @@ const searchInput = document.getElementById('searchInput');
 const greeting = document.getElementById('greeting');
 const splash = document.getElementById('splash');
 const enterBtn = document.getElementById('enterBtn');
+const seekBar = document.getElementById('seekBar');
+const curTimeEl = document.getElementById('curTime');
+const durTimeEl = document.getElementById('durTime');
+let isSeeking = false;
+
+function formatTime(sec){
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function paintSeekBar(percent){
+  seekBar.style.background =
+    `linear-gradient(90deg, var(--amber) ${percent}%, var(--pink) ${percent}%, rgba(255,255,255,.12) ${percent}%)`;
+}
+
+audio.addEventListener('loadedmetadata', () => {
+  seekBar.max = audio.duration || 0;
+  seekBar.disabled = false;
+  durTimeEl.textContent = formatTime(audio.duration);
+});
+
+audio.addEventListener('timeupdate', () => {
+  if (isSeeking) return;
+  seekBar.value = audio.currentTime;
+  curTimeEl.textContent = formatTime(audio.currentTime);
+  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  paintSeekBar(pct);
+});
+
+seekBar.addEventListener('input', () => {
+  isSeeking = true;
+  curTimeEl.textContent = formatTime(seekBar.value);
+  const pct = seekBar.max ? (seekBar.value / seekBar.max) * 100 : 0;
+  paintSeekBar(pct);
+});
+
+['change','mouseup','touchend'].forEach(evt => {
+  seekBar.addEventListener(evt, () => {
+    if (!isSeeking) return;
+    audio.currentTime = seekBar.value;
+    isSeeking = false;
+  });
+});
 
 /* ---- صفحه‌ی ورود ---- */
 enterBtn.addEventListener('click', () => {
@@ -402,12 +506,46 @@ function renderList(){
         <div class="title">${song.title || 'بدون عنوان'}</div>
         <div class="artist">${song.artist || ''}</div>
       </span>
+      <button class="dl-btn" data-index="${i}" aria-label="دانلود" title="دانلود">
+        <svg viewBox="0 0 24 24"><path d="M12 3v10.5m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+      </button>
     `;
     li.addEventListener('click', () => playIndex(i));
     songListEl.appendChild(li);
   });
   countTag.textContent = `🎵 ${playlist.length} آهنگ`;
+
+  document.querySelectorAll('.dl-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = Number(btn.dataset.index);
+      downloadTrack(playlist[idx], btn);
+    });
+  });
 }
+
+async function downloadTrack(song, btn){
+  const original = btn.innerHTML;
+  btn.classList.add('loading');
+  try{
+    const res = await fetch(song.url);
+    if (!res.ok) throw new Error('bad response');
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fileName = ((song.artist ? song.artist + ' - ' : '') + (song.title || 'track')).trim() + '.mp3';
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+  }catch(e){
+    miniArtist.textContent = "دانلود با خطا مواجه شد";
+  }finally{
+    btn.classList.remove('loading');
+    btn.innerHTML = original;
+  }
 
 searchInput.addEventListener('input', () => {
   const q = searchInput.value.trim().toLowerCase();
@@ -439,6 +577,12 @@ function playIndex(i){
   if (i < 0 || i >= playlist.length) return;
   currentIndex = i;
   audio.src = playlist[i].url;
+  seekBar.value = 0;
+  seekBar.max = 0;
+  seekBar.disabled = true;
+  curTimeEl.textContent = '۰:۰۰';
+  durTimeEl.textContent = '۰:۰۰';
+  paintSeekBar(0);
   updateMiniPlayer();
   highlightActiveRow();
   const playPromise = audio.play();
