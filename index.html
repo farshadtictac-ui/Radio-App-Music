@@ -381,7 +381,8 @@
 const GITHUB_OWNER  = "farshadtictac-ui";
 const GITHUB_REPO   = "Radio-App-Music";
 const GITHUB_BRANCH = "main";
-const SONGS_PATH    = "songs";
+const SONGS_PATH    = "songs";           // روش قدیمی: آپلود مستقیم فایل mp3
+const PLAYLIST_FILE = "playlist.txt";    // روش جدید و ساده‌تر: نوشتن لینک‌ها
 /* قالب نام‌گذاری فایل‌ها: "خواننده - نام آهنگ.mp3"  مثال: سوگند - بارون.mp3 */
 
 const AVATAR_EMOJIS = ["🎵","🎶","🎧","🎤","🎸","🥁","🎹","🎺","🎷","🪕"];
@@ -479,7 +480,39 @@ function parseFileName(name){
   return { artist: "", title: withoutOrder.trim() };
 }
 
-async function fetchPlaylist(){
+// ---- روش ۱ (پیشنهادی و ساده‌تر): خواندن لینک‌ها از فایل playlist.txt
+// هر خط: «خواننده - نام آهنگ | لینک مستقیم فایل»
+async function fetchFromLinksFile(){
+  const url = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${PLAYLIST_FILE}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("playlist.txt not found");
+  const text = await res.text();
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if (lines.length === 0) throw new Error("playlist.txt empty");
+  return lines.map((line, i) => {
+    const [labelPart, linkPart] = line.split('|').map(s => s && s.trim());
+    const link = linkPart || labelPart; // اگر جداکننده نبود، کل خط را لینک در نظر بگیر
+    let artist = "", title = labelPart || "";
+    if (linkPart){
+      const parts = labelPart.split(/\s-\s/);
+      if (parts.length >= 2){
+        artist = parts[0].trim();
+        title = parts.slice(1).join(' - ').trim();
+      }
+    } else {
+      // اگر فقط لینک وارد شده، عنوان از روی اسم فایل داخل لینک ساخته می‌شود
+      try{
+        const guess = decodeURIComponent(link.split('/').pop().replace(/\.mp3$/i, ''));
+        const parsed = parseFileName(guess + '.mp3');
+        artist = parsed.artist; title = parsed.title;
+      }catch(e){ title = "بدون عنوان"; }
+    }
+    return { title, artist, url: link, emoji: AVATAR_EMOJIS[i % AVATAR_EMOJIS.length] };
+  });
+}
+
+// ---- روش ۲ (قدیمی/پشتیبان): اسکن پوشه‌ی songs برای فایل‌های آپلودشده
+async function fetchFromSongsFolder(){
   const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${SONGS_PATH}?ref=${GITHUB_BRANCH}`;
   const res = await fetch(api, { headers: { "Accept": "application/vnd.github+json" } });
   if (!res.ok) throw new Error("github api error " + res.status);
@@ -490,6 +523,14 @@ async function fetchPlaylist(){
     const { artist, title } = parseFileName(f.name);
     return { title, artist, url: f.download_url, emoji: AVATAR_EMOJIS[i % AVATAR_EMOJIS.length] };
   });
+}
+
+async function fetchPlaylist(){
+  try{
+    return await fetchFromLinksFile();
+  }catch(e){
+    return await fetchFromSongsFolder();
+  }
 }
 
 function renderList(){
