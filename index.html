@@ -378,11 +378,12 @@
 /* =====================================================================
    تنظیمات یک‌بارِ مخزن گیت‌هاب
    ===================================================================== */
+const WORKER_URL    = "https://radio-backend.farshad-tictac.workers.dev"; // بک‌اند کانال تلگرام
 const GITHUB_OWNER  = "farshadtictac-ui";
 const GITHUB_REPO   = "Radio-App-Music";
 const GITHUB_BRANCH = "main";
 const SONGS_PATH    = "songs";           // روش قدیمی: آپلود مستقیم فایل mp3
-const PLAYLIST_FILE = "playlist.txt";    // روش جدید و ساده‌تر: نوشتن لینک‌ها
+const PLAYLIST_FILE = "playlist.txt";    // روش قدیمی‌تر: نوشتن لینک‌ها دستی
 /* قالب نام‌گذاری فایل‌ها: "خواننده - نام آهنگ.mp3"  مثال: سوگند - بارون.mp3 */
 
 const AVATAR_EMOJIS = ["🎵","🎶","🎧","🎤","🎸","🥁","🎹","🎺","🎷","🪕"];
@@ -480,7 +481,21 @@ function parseFileName(name){
   return { artist: "", title: withoutOrder.trim() };
 }
 
-// ---- روش ۱ (پیشنهادی و ساده‌تر): خواندن لینک‌ها از فایل playlist.txt
+// ---- روش ۰ (اصلی): گرفتن لیست از بک‌اند متصل به کانال تلگرام
+async function fetchFromWorker(){
+  const res = await fetch(`${WORKER_URL}/songs`, { cache: "no-store" });
+  if (!res.ok) throw new Error("worker error " + res.status);
+  const songs = await res.json();
+  if (!Array.isArray(songs) || songs.length === 0) throw new Error("worker returned no songs");
+  return songs.map((s, i) => ({
+    title: s.title || "بدون عنوان",
+    artist: s.artist || "",
+    url: `${WORKER_URL}/play/${s.id}`,
+    emoji: AVATAR_EMOJIS[i % AVATAR_EMOJIS.length]
+  }));
+}
+
+// ---- روش ۱ (پشتیبان): خواندن لینک‌ها از فایل playlist.txt در گیت‌هاب
 // هر خط: «خواننده - نام آهنگ | لینک مستقیم فایل»
 async function fetchFromLinksFile(){
   const url = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${PLAYLIST_FILE}`;
@@ -511,7 +526,7 @@ async function fetchFromLinksFile(){
   });
 }
 
-// ---- روش ۲ (قدیمی/پشتیبان): اسکن پوشه‌ی songs برای فایل‌های آپلودشده
+// ---- روش ۲ (قدیمی‌ترین/پشتیبان نهایی): اسکن پوشه‌ی songs برای فایل‌های آپلودشده
 async function fetchFromSongsFolder(){
   const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${SONGS_PATH}?ref=${GITHUB_BRANCH}`;
   const res = await fetch(api, { headers: { "Accept": "application/vnd.github+json" } });
@@ -527,9 +542,13 @@ async function fetchFromSongsFolder(){
 
 async function fetchPlaylist(){
   try{
-    return await fetchFromLinksFile();
-  }catch(e){
-    return await fetchFromSongsFolder();
+    return await fetchFromWorker();
+  }catch(e1){
+    try{
+      return await fetchFromLinksFile();
+    }catch(e2){
+      return await fetchFromSongsFolder();
+    }
   }
 }
 
