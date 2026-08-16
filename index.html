@@ -1,147 +1,734 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>🚗 Car Music | آهنگ ماشین</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0c13;
+    --bg-1:#141826;
+    --amber:#f2a65a;
+    --pink:#ff6f9c;
+    --teal:#3bd6c6;
+    --violet:#9b7bff;
+    --text:#eef1f6;
+    --text-dim:#8b93a5;
+    --line:rgba(255,255,255,.07);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;
+    background:var(--bg-0);
+    color:var(--text);
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    overflow-x:hidden;
+  }
+  body{ min-height:100vh; min-height:100dvh; padding-bottom:24px; position:relative; }
+
+  /* ---------------- پس‌زمینه‌ی رنگی متحرک (Aurora) ---------------- */
+  .aurora{
+    position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+  }
+  .aurora span{
+    position:absolute; border-radius:50%;
+    filter:blur(60px); opacity:.35;
+    will-change:transform;
+  }
+  .aurora span:nth-child(1){
+    width:260px;height:260px; background:var(--amber);
+    top:-60px; right:-40px;
+    animation:float1 16s ease-in-out infinite alternate;
+  }
+  .aurora span:nth-child(2){
+    width:220px;height:220px; background:var(--pink);
+    bottom:120px; left:-60px;
+    animation:float2 20s ease-in-out infinite alternate;
+  }
+  .aurora span:nth-child(3){
+    width:200px;height:200px; background:var(--teal);
+    bottom:-60px; right:20%;
+    animation:float3 18s ease-in-out infinite alternate;
+  }
+  .aurora span:nth-child(4){
+    width:180px;height:180px; background:var(--violet);
+    top:30%; left:10%;
+    animation:float1 22s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes float1{ from{ transform:translate(0,0); } to{ transform:translate(30px,50px); } }
+  @keyframes float2{ from{ transform:translate(0,0); } to{ transform:translate(40px,-30px); } }
+  @keyframes float3{ from{ transform:translate(0,0); } to{ transform:translate(-30px,-40px); } }
+
+  /* ---------------- صفحه‌ی ورود (Splash) ---------------- */
+  #splash{
+    position:fixed; inset:0; z-index:50;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px;
+    background:radial-gradient(circle at 50% 20%, #1b2032, var(--bg-0) 75%);
+    transition:opacity .5s ease, visibility .5s ease;
+  }
+  #splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+  .orb{
+    width:104px; height:104px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:42px;
+    background:conic-gradient(from 0deg, var(--amber), var(--pink), var(--violet), var(--teal), var(--amber));
+    animation:spin-slow 6s linear infinite;
+    box-shadow:0 0 40px rgba(242,166,90,.35);
+    margin-bottom:22px;
+  }
+  .orb::after{
+    content:"🎧"; display:block;
+    width:88px; height:88px; border-radius:50%;
+    background:var(--bg-0);
+    display:flex; align-items:center; justify-content:center;
+    margin:8px;
+  }
+  @keyframes spin-slow{ to{ transform:rotate(360deg); } }
+  #splash h1{
+    margin:0 0 8px; font-size:26px; font-weight:700;
+    background:linear-gradient(90deg, var(--amber), var(--pink), var(--teal));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  #splash p{ margin:0 0 26px; color:var(--text-dim); font-size:14px; max-width:280px; line-height:1.9; }
+  #enterBtn{
+    font-family:inherit; font-size:15px; font-weight:700;
+    color:#141826; border:none; border-radius:30px;
+    padding:14px 40px;
+    background:linear-gradient(90deg, var(--amber), var(--pink));
+    box-shadow:0 8px 24px rgba(242,166,90,.3);
+    cursor:pointer;
+    animation:pulse-btn 2.2s ease-in-out infinite;
+  }
+  #enterBtn:active{ transform:scale(.96); }
+  @keyframes pulse-btn{
+    0%,100%{ box-shadow:0 8px 24px rgba(242,166,90,.3); }
+    50%{ box-shadow:0 8px 34px rgba(255,111,156,.45); }
+  }
+  .splash-bars{ display:flex; gap:4px; margin-top:28px; height:22px; align-items:flex-end; }
+  .splash-bars span{
+    width:5px; border-radius:2px;
+    animation:mini-eq 1.1s ease-in-out infinite;
+  }
+  .splash-bars span:nth-child(1){ background:var(--amber); animation-delay:0s; }
+  .splash-bars span:nth-child(2){ background:var(--pink); animation-delay:.15s; }
+  .splash-bars span:nth-child(3){ background:var(--violet); animation-delay:.3s; }
+  .splash-bars span:nth-child(4){ background:var(--teal); animation-delay:.45s; }
+  .splash-bars span:nth-child(5){ background:var(--amber); animation-delay:.6s; }
+
+  /* ---------------- سربرگ و پیام خوش‌آمد ---------------- */
+  header{
+    position:relative; z-index:1;
+    padding:22px 20px 4px;
+    text-align:center;
+  }
+  header .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:11px;letter-spacing:.3em;
+    color:var(--amber);text-transform:uppercase;
+  }
+  header h1{
+    margin:6px 0 4px; font-size:22px; font-weight:700;
+    background:linear-gradient(90deg, var(--amber), var(--pink), var(--teal));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  header .greeting{ font-size:12.5px; color:var(--text-dim); }
+
+  /* ---------------- جستجو ---------------- */
+  .search-wrap{ position:relative; z-index:1; margin:14px 16px 10px; }
+  #searchInput{
+    width:100%; font-family:inherit; font-size:13.5px;
+    background:rgba(255,255,255,.04);
+    border:1px solid var(--line); border-radius:14px;
+    color:var(--text); padding:11px 14px;
+    outline:none;
+  }
+  #searchInput::placeholder{ color:var(--text-dim); }
+  #searchInput:focus{ border-color:rgba(242,166,90,.5); }
+
+  /* ---------------- نوار پخش‌کننده‌ی مینی ---------------- */
+  .mini-player{
+    position:sticky; top:0; z-index:4;
+    margin:0 16px 10px;
+    background:linear-gradient(180deg,#181f30,#10141d);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px 16px 10px;
+    box-shadow:0 10px 24px rgba(0,0,0,.35);
+  }
+  .mini-top{
+    display:flex; align-items:center; gap:12px;
+  }
+  #playPauseBtn{
+    flex:0 0 auto;
+    width:46px;height:46px;border-radius:50%;
+    border:none;
+    background:linear-gradient(135deg, var(--amber), var(--pink));
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(242,166,90,.35);
+  }
+  #playPauseBtn svg{ width:18px;height:18px; }
+  #playPauseBtn svg path,#playPauseBtn svg rect{ fill:#161b26; }
+  #shuffleBtn{
+    flex:0 0 auto;
+    width:36px;height:36px;border-radius:50%;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.03);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer; font-size:15px;
+    transition:border-color .2s, background .2s;
+  }
+  #shuffleBtn.on{
+    border-color:var(--teal);
+    background:rgba(59,214,198,.12);
+  }
+  .mini-info{ flex:1 1 auto; min-width:0; }
+  .mini-info .t{
+    font-family:'Space Mono',monospace; font-size:13.5px; color:var(--amber);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .mini-info .a{
+    font-size:11.5px; color:var(--text-dim); margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .mini-viz{
+    flex:0 0 auto; width:34px; height:22px;
+    display:flex; align-items:flex-end; justify-content:center; gap:3px;
+  }
+  .mini-viz span{
+    width:4px; height:4px; border-radius:1px;
+    background:rgba(255,255,255,.15);
+    transition:background .3s;
+  }
+  .mini-viz.active span:nth-child(1){ background:var(--amber); animation:mini-eq 1.1s ease-in-out infinite; animation-delay:0s; }
+  .mini-viz.active span:nth-child(2){ background:var(--pink); animation:mini-eq 1.1s ease-in-out infinite; animation-delay:.15s; }
+  .mini-viz.active span:nth-child(3){ background:var(--violet); animation:mini-eq 1.1s ease-in-out infinite; animation-delay:.3s; }
+  .mini-viz.active span:nth-child(4){ background:var(--teal); animation:mini-eq 1.1s ease-in-out infinite; animation-delay:.45s; }
+  @keyframes mini-eq{
+    0%,100%{ height:4px; }
+    50%{ height:20px; }
+  }
+
+  /* ---- نوار پیشرفت آهنگ ---- */
+  .seek-row{
+    display:flex; align-items:center; gap:8px;
+    margin-top:8px;
+  }
+  .seek-row .time{
+    font-family:'Space Mono',monospace; font-size:10.5px; color:var(--text-dim);
+    flex:0 0 auto; min-width:32px; text-align:center;
+  }
+  #seekBar{
+    flex:1 1 auto; -webkit-appearance:none; appearance:none;
+    height:4px; border-radius:2px;
+    background:linear-gradient(90deg, var(--amber) 0%, var(--amber) 0%, rgba(255,255,255,.12) 0%);
+    outline:none; cursor:pointer;
+  }
+  #seekBar:disabled{ cursor:default; opacity:.5; }
+  #seekBar::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:13px; height:13px; border-radius:50%;
+    background:linear-gradient(135deg, var(--amber), var(--pink));
+    box-shadow:0 0 6px rgba(242,166,90,.6);
+    border:none;
+  }
+  #seekBar::-moz-range-thumb{
+    width:13px; height:13px; border-radius:50%;
+    background:linear-gradient(135deg, var(--amber), var(--pink));
+    box-shadow:0 0 6px rgba(242,166,90,.6);
+    border:none;
+  }
+  #seekBar::-moz-range-track{
+    height:4px; border-radius:2px; background:rgba(255,255,255,.12);
+  }
+
+  /* ---------------- لیست آهنگ‌ها ---------------- */
+  .list-wrap{ position:relative; z-index:1; padding:4px 16px; }
+  .state-msg{
+    text-align:center; color:var(--text-dim);
+    font-size:13px; padding:30px 10px;
+  }
+  ul#songList{ list-style:none; margin:0; padding:0; }
+  .song-row{
+    display:flex; align-items:center; gap:12px;
+    padding:11px 10px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    border-radius:12px;
+    transition:background .2s;
+  }
+  .song-row:active{ background:rgba(255,255,255,.05); }
+  .song-row.active{ background:linear-gradient(90deg, rgba(242,166,90,.14), rgba(255,111,156,.08)); }
+  .avatar{
+    flex:0 0 38px; width:38px; height:38px; border-radius:11px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px;
+    background:linear-gradient(135deg, rgba(242,166,90,.18), rgba(155,123,255,.18));
+  }
+  .eq{
+    flex:0 0 26px; height:16px;
+    display:none; align-items:flex-end; gap:2px;
+  }
+  .song-row.active .eq{ display:flex; }
+  .eq span{ width:3px; border-radius:1px; animation:eq 1s ease-in-out infinite; }
+  .eq span:nth-child(1){ height:6px; background:var(--amber); animation-delay:0s; }
+  .eq span:nth-child(2){ height:14px; background:var(--pink); animation-delay:.2s; }
+  .eq span:nth-child(3){ height:9px; background:var(--teal); animation-delay:.4s; }
+  @keyframes eq{
+    0%,100%{ transform:scaleY(.4); }
+    50%{ transform:scaleY(1); }
+  }
+  .song-meta{ flex:1 1 auto; min-width:0; }
+  .song-meta .title{
+    font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .song-row.active .song-meta .title{ color:var(--amber); }
+  .song-meta .artist{
+    font-size:12px; color:var(--text-dim); margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .dl-btn{
+    flex:0 0 32px; width:32px; height:32px; border-radius:9px;
+    border:1px solid var(--line); background:rgba(255,255,255,.03);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .dl-btn svg{
+    width:15px; height:15px;
+    fill:none; stroke:var(--text-dim); stroke-width:2;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
+  .dl-btn:active{ background:rgba(242,166,90,.12); border-color:rgba(242,166,90,.4); }
+  .dl-btn:active svg{ stroke:var(--amber); }
+  .dl-btn.loading{ animation:dl-pulse 1s ease-in-out infinite; pointer-events:none; }
+  @keyframes dl-pulse{
+    0%,100%{ opacity:1; } 50%{ opacity:.35; }
+  }
+  .retry-btn{
+    display:block; margin:14px auto 0;
+    background:none; border:1px solid var(--amber);
+    color:var(--amber); border-radius:20px;
+    padding:8px 20px; font-family:inherit; font-size:13px;
+    cursor:pointer;
+  }
+  .count-tag{
+    font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);
+    text-align:center; margin:2px 0 10px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .aurora span, .orb, #enterBtn, .splash-bars span, .mini-viz span, .eq span{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="aurora"><span></span><span></span><span></span><span></span></div>
+
+<!-- ---------------- صفحه‌ی ورود ---------------- -->
+<div id="splash">
+  <div class="orb"></div>
+  <h1>🚗 Car Music</h1>
+  <p>آرشیو زنده‌ی آهنگ ماشین، همیشه در حال بزرگ‌ترشدن. یکی رو انتخاب کن، بشین و لذت ببر 🎶</p>
+  <button id="enterBtn">ورود به رادیو</button>
+  <div class="splash-bars"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<!-- ---------------- برنامه‌ی اصلی ---------------- -->
+<header>
+  <div class="eyebrow">پخش دائمی | همیشه به‌روز</div>
+  <h1>🚗 Car Music | آهنگ ماشین</h1>
+  <div class="greeting" id="greeting"></div>
+</header>
+
+<div class="search-wrap">
+  <input id="searchInput" type="text" placeholder="جستجوی آهنگ یا خواننده…" />
+</div>
+
+<div class="mini-player">
+  <div class="mini-top">
+    <button id="playPauseBtn" aria-label="پخش">
+      <svg id="miniPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="miniPause" viewBox="0 0 24 24" hidden><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+    </button>
+    <button id="shuffleBtn" aria-label="پخش تصادفی" title="پخش تصادفی">🔀</button>
+    <div class="mini-info">
+      <div class="t" id="miniTitle">آهنگی انتخاب نشده</div>
+      <div class="a" id="miniArtist">از لیست پایین یک آهنگ انتخاب کنید</div>
+    </div>
+    <span class="mini-viz" id="miniViz"><span></span><span></span><span></span><span></span></span>
+  </div>
+  <div class="seek-row">
+    <span class="time" id="curTime">۰:۰۰</span>
+    <input type="range" id="seekBar" min="0" max="0" step="0.1" value="0" disabled>
+    <span class="time" id="durTime">۰:۰۰</span>
+  </div>
+</div>
+
+<div class="list-wrap">
+  <div class="count-tag" id="countTag"></div>
+  <div class="state-msg" id="stateMsg">در حال بارگذاری لیست آهنگ‌ها…</div>
+  <ul id="songList"></ul>
+</div>
+
+<script>
 /* =====================================================================
-   تنظیمات مخزن گیت‌هاب — باید با تنظیمات داخل index.html یکی باشد
+   تنظیمات یک‌بارِ مخزن گیت‌هاب
    ===================================================================== */
+const WORKER_URL    = "https://radio-backend.farshad-tictac.workers.dev"; // بک‌اند کانال تلگرام
 const GITHUB_OWNER  = "farshadtictac-ui";
 const GITHUB_REPO   = "Radio-App-Music";
 const GITHUB_BRANCH = "main";
-const SONGS_PATH    = "songs";
+const SONGS_PATH    = "songs";           // روش قدیمی: آپلود مستقیم فایل mp3
+const PLAYLIST_FILE = "playlist.txt";    // روش قدیمی‌تر: نوشتن لینک‌ها دستی
+/* قالب نام‌گذاری فایل‌ها: "خواننده - نام آهنگ.mp3"  مثال: سوگند - بارون.mp3 */
 
-// حداکثر حجم فایلی که تلگرام به ربات‌ها اجازه‌ی دانلودش را می‌دهد (محدودیت خودِ تلگرام است)
-const MAX_BYTES = 19 * 1024 * 1024;
+const AVATAR_EMOJIS = ["🎵","🎶","🎧","🎤","🎸","🥁","🎹","🎺","🎷","🪕"];
 
-function arrayBufferToBase64(buffer) {
-  let binary = "";
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000; // برای جلوگیری از خطای حافظه، فایل تکه‌تکه پردازش می‌شود
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
+let playlist = [];
+let currentIndex = -1;
+let isPlaying = false;
+let shuffle = false;
+
+const audio = new Audio();
+audio.preload = "auto";
+
+const stateMsg = document.getElementById('stateMsg');
+const countTag = document.getElementById('countTag');
+const songListEl = document.getElementById('songList');
+const playPauseBtn = document.getElementById('playPauseBtn');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const miniPlay = document.getElementById('miniPlay');
+const miniPause = document.getElementById('miniPause');
+const miniTitle = document.getElementById('miniTitle');
+const miniArtist = document.getElementById('miniArtist');
+const miniViz = document.getElementById('miniViz');
+const searchInput = document.getElementById('searchInput');
+const greeting = document.getElementById('greeting');
+const splash = document.getElementById('splash');
+const enterBtn = document.getElementById('enterBtn');
+const seekBar = document.getElementById('seekBar');
+const curTimeEl = document.getElementById('curTime');
+const durTimeEl = document.getElementById('durTime');
+let isSeeking = false;
+
+function formatTime(sec){
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
 }
 
-// نام فایل امن می‌سازد: یک برچسب زمانی نامرئی جلوی اسم (برای مرتب‌سازی جدید-به-قدیم)
-// به‌این‌شکل: «۱۷۲۳۴۵۶_خواننده - نام آهنگ [شناسه‌ی‌کوتاه].mp3»
-function buildFileName(artist, title, uniqueId, timestamp) {
-  const clean = (s) => (s || "").replace(/[\\/:*?"<>|]/g, "").trim();
-  const base = clean(artist) ? `${clean(artist)} - ${clean(title || "بدون عنوان")}` : clean(title || "بدون عنوان");
-  const shortId = uniqueId.replace(/[^a-zA-Z0-9]/g, "").slice(-6);
-  const sortKey = String(9999999999 - timestamp); // عدد معکوس تا الفبایی هم جدید-به-قدیم شود
-  return `${sortKey}_${base} [${shortId}].mp3`;
+function paintSeekBar(percent){
+  seekBar.style.background =
+    `linear-gradient(90deg, var(--amber) ${percent}%, var(--pink) ${percent}%, rgba(255,255,255,.12) ${percent}%)`;
 }
 
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+audio.addEventListener('loadedmetadata', () => {
+  seekBar.max = audio.duration || 0;
+  seekBar.disabled = false;
+  durTimeEl.textContent = formatTime(audio.duration);
+});
 
-    // ==== بررسی سریع تنظیمات (برای عیب‌یابی) ====
-    if (request.method === "GET" && url.pathname === "/debug") {
-      const debugLog = JSON.parse((await env.SONGS.get("debugLog")) || "[]");
-      return new Response(JSON.stringify({
-        channelIdStored: env.CHANNEL_ID || null,
-        hasBotToken: Boolean(env.BOT_TOKEN),
-        hasWebhookSecret: Boolean(env.WEBHOOK_SECRET),
-        hasGithubToken: Boolean(env.GITHUB_TOKEN),
-        recentEvents: debugLog
-      }, null, 2), { headers: { "Content-Type": "application/json" } });
-    }
+audio.addEventListener('timeupdate', () => {
+  if (isSeeking) return;
+  seekBar.value = audio.currentTime;
+  curTimeEl.textContent = formatTime(audio.currentTime);
+  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  paintSeekBar(pct);
+});
 
-    // ==== دریافت پیام‌های جدید از کانال (وب‌هوک تلگرام) ====
-    if (request.method === "POST" && url.pathname === "/webhook") {
-      const secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
-      if (secret !== env.WEBHOOK_SECRET) {
-        return new Response("forbidden", { status: 403 });
-      }
+seekBar.addEventListener('input', () => {
+  isSeeking = true;
+  curTimeEl.textContent = formatTime(seekBar.value);
+  const pct = seekBar.max ? (seekBar.value / seekBar.max) * 100 : 0;
+  paintSeekBar(pct);
+});
 
-      const update = await request.json();
-      const msg = update.channel_post || update.message;
-      const incomingChatId = msg && msg.chat ? String(msg.chat.id) : null;
-      const matched = incomingChatId !== null && incomingChatId === env.CHANNEL_ID;
-      const hasAudio = Boolean(msg && msg.audio);
+['change','mouseup','touchend'].forEach(evt => {
+  seekBar.addEventListener(evt, () => {
+    if (!isSeeking) return;
+    audio.currentTime = seekBar.value;
+    isSeeking = false;
+  });
+});
 
-      // ثبت آخرین چند رویداد ورودی برای عیب‌یابی از طریق /debug
-      let debugLog = JSON.parse((await env.SONGS.get("debugLog")) || "[]");
-      const entry = { time: new Date().toISOString(), incomingChatId, configuredChannelId: env.CHANNEL_ID || null, matched, hasAudio };
-      debugLog.unshift(entry);
-      debugLog = debugLog.slice(0, 8);
-      await env.SONGS.put("debugLog", JSON.stringify(debugLog));
+/* ---- صفحه‌ی ورود ---- */
+enterBtn.addEventListener('click', () => {
+  splash.classList.add('hide');
+});
 
-      // فقط پیام‌های خودِ کانال پذیرفته می‌شوند
-      if (!matched) {
-        return new Response("ignored");
-      }
+/* ---- پیام خوش‌آمد بر اساس ساعت روز ---- */
+(function setGreeting(){
+  const h = new Date().getHours();
+  let msg = h < 5 ? "پخش شبانه، آروم بمون 🌙"
+    : h < 12 ? "صبح بخیر، روزت پرانرژی ☀️"
+    : h < 18 ? "عصر بخیر، وقت یه آهنگ خوبه 🌤"
+    : "شب بخیر، بشین و گوش بده 🌌";
+  greeting.textContent = msg;
+})();
 
-      if (!hasAudio) {
-        return new Response("no audio, ignored");
-      }
-
-      const audio = msg.audio;
-
-      if (audio.file_size && audio.file_size > MAX_BYTES) {
-        entry.skippedTooLarge = true;
-        debugLog[0] = entry;
-        await env.SONGS.put("debugLog", JSON.stringify(debugLog));
-        return new Response("skipped: file too large for bot API (>20MB)");
-      }
-
-      const uniqueId = audio.file_unique_id;
-
-      // اگر این فایل قبلاً آپلود شده، دوباره تکرار نمی‌شود
-      const already = await env.SONGS.get(`uploaded:${uniqueId}`);
-      if (already) {
-        return new Response("already uploaded, skipped");
-      }
-
-      try {
-        // ۱) گرفتن مسیر فایل از تلگرام
-        const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getFile?file_id=${audio.file_id}`);
-        const tgData = await tgRes.json();
-        if (!tgData.ok) throw new Error("telegram getFile failed: " + JSON.stringify(tgData));
-
-        // ۲) دانلود خودِ فایل از تلگرام
-        const fileUrl = `https://api.telegram.org/file/bot${env.BOT_TOKEN}/${tgData.result.file_path}`;
-        const fileRes = await fetch(fileUrl);
-        if (!fileRes.ok) throw new Error("telegram file download failed");
-        const buffer = await fileRes.arrayBuffer();
-        const base64Content = arrayBufferToBase64(buffer);
-
-        // ۳) ساخت اسم فایل و آپلود به گیت‌هاب
-        const title = audio.title || (audio.file_name ? audio.file_name.replace(/\.[^/.]+$/, "") : "بدون عنوان");
-        const artist = audio.performer || "";
-        const fileName = buildFileName(artist, title, uniqueId, msg.date || Math.floor(Date.now() / 1000));
-        const githubPath = `${SONGS_PATH}/${encodeURIComponent(fileName)}`;
-        const githubApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${githubPath}`;
-
-        const putRes = await fetch(githubApi, {
-          method: "PUT",
-          headers: {
-            "Authorization": `token ${env.GITHUB_TOKEN}`,
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "car-music-bot"
-          },
-          body: JSON.stringify({
-            message: `افزودن آهنگ: ${fileName}`,
-            content: base64Content,
-            branch: GITHUB_BRANCH
-          })
-        });
-
-        if (!putRes.ok) {
-          const errText = await putRes.text();
-          throw new Error("github upload failed: " + errText);
-        }
-
-        // ۴) ثبت این‌که این فایل دیگر آپلود شده (جلوگیری از تکرار در فورواردهای بعدی)
-        await env.SONGS.put(`uploaded:${uniqueId}`, fileName);
-
-        return new Response("uploaded to github: " + fileName);
-      } catch (e) {
-        entry.error = String(e);
-        debugLog[0] = entry;
-        await env.SONGS.put("debugLog", JSON.stringify(debugLog));
-        return new Response("error: " + String(e), { status: 500 });
-      }
-    }
-
-    return new Response("radio backend (github relay) is running ✅", { status: 200 });
+function parseFileName(name){
+  const noExt = name.replace(/\.mp3$/i, '');
+  // حذف برچسب زمانی نامرئیِ ابتدای اسم (برای مرتب‌سازی جدید-به-قدیم) که ربات اضافه می‌کند
+  const withoutTimestamp = noExt.replace(/^\d{9,11}_/, '');
+  const withoutOrder = withoutTimestamp.replace(/^\d+\s*-\s*/, '');
+  // حذف شناسه‌ی کوتاه انتهای اسم که ربات برای یکتاسازی اضافه می‌کند، مثل " [a1b2c3]"
+  const withoutTag = withoutOrder.replace(/\s*\[[a-zA-Z0-9]{4,8}\]$/, '');
+  const parts = withoutTag.split(/\s-\s/);
+  if (parts.length >= 2){
+    return { artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim() };
   }
-};
+  return { artist: "", title: withoutTag.trim() };
+}
+
+// ---- روش ۰ (اصلی): گرفتن لیست از بک‌اند متصل به کانال تلگرام
+async function fetchFromWorker(){
+  const res = await fetch(`${WORKER_URL}/songs`, { cache: "no-store" });
+  if (!res.ok) throw new Error("worker error " + res.status);
+  const songs = await res.json();
+  if (!Array.isArray(songs) || songs.length === 0) throw new Error("worker returned no songs");
+  return songs.map((s, i) => ({
+    title: s.title || "بدون عنوان",
+    artist: s.artist || "",
+    url: `${WORKER_URL}/play/${s.id}`,
+    emoji: AVATAR_EMOJIS[i % AVATAR_EMOJIS.length]
+  }));
+}
+
+// ---- روش ۱ (پشتیبان): خواندن لینک‌ها از فایل playlist.txt در گیت‌هاب
+// هر خط: «خواننده - نام آهنگ | لینک مستقیم فایل»
+async function fetchFromLinksFile(){
+  const url = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${PLAYLIST_FILE}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("playlist.txt not found");
+  const text = await res.text();
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if (lines.length === 0) throw new Error("playlist.txt empty");
+  return lines.map((line, i) => {
+    const [labelPart, linkPart] = line.split('|').map(s => s && s.trim());
+    const link = linkPart || labelPart; // اگر جداکننده نبود، کل خط را لینک در نظر بگیر
+    let artist = "", title = labelPart || "";
+    if (linkPart){
+      const parts = labelPart.split(/\s-\s/);
+      if (parts.length >= 2){
+        artist = parts[0].trim();
+        title = parts.slice(1).join(' - ').trim();
+      }
+    } else {
+      // اگر فقط لینک وارد شده، عنوان از روی اسم فایل داخل لینک ساخته می‌شود
+      try{
+        const guess = decodeURIComponent(link.split('/').pop().replace(/\.mp3$/i, ''));
+        const parsed = parseFileName(guess + '.mp3');
+        artist = parsed.artist; title = parsed.title;
+      }catch(e){ title = "بدون عنوان"; }
+    }
+    return { title, artist, url: link, emoji: AVATAR_EMOJIS[i % AVATAR_EMOJIS.length] };
+  });
+}
+
+// ---- روش ۲ (قدیمی‌ترین/پشتیبان نهایی): اسکن پوشه‌ی songs برای فایل‌های آپلودشده
+async function fetchFromSongsFolder(){
+  const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${SONGS_PATH}?ref=${GITHUB_BRANCH}`;
+  const res = await fetch(api, { headers: { "Accept": "application/vnd.github+json" } });
+  if (!res.ok) throw new Error("github api error " + res.status);
+  const data = await res.json();
+  const files = data.filter(f => f.type === 'file' && /\.mp3$/i.test(f.name));
+  files.sort((a,b) => a.name.localeCompare(b.name));
+  return files.map((f, i) => {
+    const { artist, title } = parseFileName(f.name);
+    return { title, artist, url: f.download_url, emoji: AVATAR_EMOJIS[i % AVATAR_EMOJIS.length] };
+  });
+}
+
+async function fetchPlaylist(){
+  try{
+    return await fetchFromSongsFolder();
+  }catch(e1){
+    try{
+      return await fetchFromLinksFile();
+    }catch(e2){
+      return await fetchFromWorker();
+    }
+  }
+}
+
+function renderList(){
+  songListEl.innerHTML = "";
+  playlist.forEach((song, i) => {
+    const li = document.createElement('li');
+    li.className = 'song-row';
+    li.dataset.index = i;
+    li.dataset.search = (song.title + ' ' + song.artist).toLowerCase();
+    li.innerHTML = `
+      <span class="avatar">${song.emoji}</span>
+      <span class="eq"><span></span><span></span><span></span></span>
+      <span class="song-meta">
+        <div class="title">${song.title || 'بدون عنوان'}</div>
+        <div class="artist">${song.artist || ''}</div>
+      </span>
+      <button class="dl-btn" data-index="${i}" aria-label="دانلود" title="دانلود">
+        <svg viewBox="0 0 24 24"><path d="M12 3v10.5m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+      </button>
+    `;
+    li.addEventListener('click', () => playIndex(i));
+    songListEl.appendChild(li);
+  });
+  countTag.textContent = `🎵 ${playlist.length} آهنگ`;
+
+  document.querySelectorAll('.dl-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = Number(btn.dataset.index);
+      downloadTrack(playlist[idx], btn);
+    });
+  });
+}
+
+async function downloadTrack(song, btn){
+  const original = btn.innerHTML;
+  btn.classList.add('loading');
+  try{
+    const res = await fetch(song.url);
+    if (!res.ok) throw new Error('bad response');
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fileName = ((song.artist ? song.artist + ' - ' : '') + (song.title || 'track')).trim() + '.mp3';
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+  }catch(e){
+    miniArtist.textContent = "دانلود با خطا مواجه شد";
+  }finally{
+    btn.classList.remove('loading');
+    btn.innerHTML = original;
+  }
+}
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  document.querySelectorAll('.song-row').forEach(row => {
+    row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+  });
+});
+
+function highlightActiveRow(){
+  document.querySelectorAll('.song-row').forEach(row => {
+    row.classList.toggle('active', Number(row.dataset.index) === currentIndex);
+  });
+}
+
+function updateMiniPlayer(){
+  const song = playlist[currentIndex];
+  miniTitle.textContent = song ? (song.title || 'بدون عنوان') : 'آهنگی انتخاب نشده';
+  miniArtist.textContent = song ? (song.artist || '') : 'از لیست پایین یک آهنگ انتخاب کنید';
+}
+
+function setPlayingUI(playing){
+  isPlaying = playing;
+  miniPlay.hidden = playing;
+  miniPause.hidden = !playing;
+  miniViz.classList.toggle('active', playing);
+}
+
+function playIndex(i){
+  if (i < 0 || i >= playlist.length) return;
+  currentIndex = i;
+  audio.src = playlist[i].url;
+  seekBar.value = 0;
+  seekBar.max = 0;
+  seekBar.disabled = true;
+  curTimeEl.textContent = '۰:۰۰';
+  durTimeEl.textContent = '۰:۰۰';
+  paintSeekBar(0);
+  updateMiniPlayer();
+  highlightActiveRow();
+  const playPromise = audio.play();
+  if (playPromise){
+    playPromise.then(() => setPlayingUI(true)).catch(() => setPlayingUI(false));
+  } else {
+    setPlayingUI(true);
+  }
+}
+
+function nextIndex(){
+  if (playlist.length === 0) return -1;
+  if (shuffle){
+    if (playlist.length === 1) return 0;
+    let r;
+    do { r = Math.floor(Math.random() * playlist.length); } while (r === currentIndex);
+    return r;
+  }
+  return (currentIndex + 1) % playlist.length;
+}
+
+playPauseBtn.addEventListener('click', () => {
+  if (currentIndex === -1){
+    if (playlist.length) playIndex(0);
+    return;
+  }
+  if (isPlaying){
+    audio.pause();
+    setPlayingUI(false);
+  } else {
+    const playPromise = audio.play();
+    if (playPromise){
+      playPromise.then(() => setPlayingUI(true)).catch(() => setPlayingUI(false));
+    } else {
+      setPlayingUI(true);
+    }
+  }
+});
+
+shuffleBtn.addEventListener('click', () => {
+  shuffle = !shuffle;
+  shuffleBtn.classList.toggle('on', shuffle);
+});
+
+audio.addEventListener('ended', () => {
+  const n = nextIndex();
+  if (n !== -1) playIndex(n);
+});
+audio.addEventListener('error', () => {
+  miniArtist.textContent = "خطا در پخش این فایل";
+});
+
+async function init(){
+  try{
+    playlist = await fetchPlaylist();
+    if (playlist.length === 0){
+      stateMsg.textContent = "هنوز آهنگی در پوشه‌ی songs پیدا نشد.";
+      return;
+    }
+    stateMsg.style.display = 'none';
+    renderList();
+  }catch(e){
+    stateMsg.innerHTML = "خطا در دریافت لیست آهنگ‌ها. اتصال اینترنت یا تنظیمات مخزن را بررسی کنید.";
+    const btn = document.createElement('button');
+    btn.className = 'retry-btn';
+    btn.textContent = 'تلاش دوباره';
+    btn.addEventListener('click', () => {
+      stateMsg.textContent = "در حال بارگذاری لیست آهنگ‌ها…";
+      stateMsg.style.display = 'block';
+      init();
+    });
+    stateMsg.appendChild(document.createElement('br'));
+    stateMsg.appendChild(btn);
+  }
+}
+init();
+
+if (window.Telegram && window.Telegram.WebApp){
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
